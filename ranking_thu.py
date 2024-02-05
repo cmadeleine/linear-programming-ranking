@@ -5,23 +5,24 @@ from gurobipy import GRB
 import math
 from scipy.stats import norm
 
-# simulate(n, L, e, gap)
+# simulate(n, L, e, k, gap)
 #
 # INPUT:
 # n = number of elements
 # e = comparison probability
 # L = number of comparisons per pair
+# k = number of top elements to separate from the rest
 # gap = imposed gap between first element and rest
 #
 # OUTPUT:
 # s_star = vector approximating ideal s
 # l_inf_error = infinity norm error of the approximation vector
 # D_w_error = weighted sum of out of order pairs in the approximation vector
-def simulate(n, L, e, gap):
-    s = make_s(n, gap)
+def simulate(n, L, e, k, gap):
+    s = make_s(n, k, gap)
     # normalize s
     s_norm = np.asarray(s) / sum(s)
-    P = make_P(n, e, L, w)
+    P = make_P(n, e, L, s)
     s_star = lp_algorithm(P, min(s_norm), max(s_norm))
 
     # l infinity error
@@ -38,23 +39,24 @@ def simulate(n, L, e, gap):
 
     return s_star, l_inf_err, D_w_err
 
-# make_s(n, delta_k)
+# make_s(n, k, delta_k)
 #
 # INPUT:
 # n = number of elements
-# delta_k = imposed gap between first element and rest
+# k = number of top elements to separate from the rest
+# delta_k = imposed gap between first k and rest
 #
 # OUTPUT:
 # s = ground truth score vector
-def make_s(n, delta_k):
+def make_s(n, k, delta_k):
     s = [0] * n
     for i in range(0, n):
         s[i] = random.random() * 0.5 + 0.5
 
-    s_min = min(s)
+    s_sort = np.sort(s)
 
     for i in range(0, n):
-        if (s[i] > s_min):
+        if (s[i] >= s_sort[n-k]):
             s[i] += delta_k
 
     return s

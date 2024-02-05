@@ -4,20 +4,21 @@ import gurobipy as gp
 from gurobipy import GRB
 import math
 
-# simulate(n, L, e, gap)
+# simulate(n, L, e, k, gap)
 #
 # INPUT:
 # n = number of elements
 # e = comparison probability
 # L = number of comparisons per pair
+# k = number of top elements to separate from the rest
 # gap = imposed gap between first element and rest
 #
 # OUTPUT:
 # w_star = vector approximating ideal w
 # l_inf_error = infinity norm error of the approximation vector
 # D_w_error = weighted sum of out of order pairs in the approximation vector
-def simulate(n, L, e, gap):
-    w = make_w(n, gap)
+def simulate(n, L, e, k, gap):
+    w = make_w(n, k, gap)
     # normalize w
     w_norm = np.asarray(w) / sum(w)
     P = make_P(n, e, L, w)
@@ -37,23 +38,24 @@ def simulate(n, L, e, gap):
 
     return w_star, l_inf_err, D_w_err
 
-# make_w(n, delta_k)
+# make_w(n, k, delta_k)
 #
 # INPUT:
 # n = number of elements
-# delta_k = imposed gap between first element and rest
+# k = number of top elements to separate from the rest
+# delta_k = imposed gap between first k and rest
 #
 # OUTPUT:
 # w = ground truth score vector
-def make_w(n, delta_k):
+def make_w(n, k, delta_k):
     w = [0] * n
     for i in range(0, n):
         w[i] = random.random() * 0.5 + 0.5
 
-    w_min = min(w)
+    w_sort = np.sort(w)
 
     for i in range(0, n):
-        if (w[i] > w_min):
+        if (w[i] >= w_sort[n-k]):
             w[i] += delta_k
 
     return w
