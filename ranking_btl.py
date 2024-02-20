@@ -4,73 +4,78 @@ import gurobipy as gp
 from gurobipy import GRB
 import math
 
-# simulate(n, L, e, k, gap)
+# simulate(n, L, p, use_gap, k, gap)
 #
 # INPUT:
 # n = number of elements
-# e = comparison probability
+# p = comparison probability
 # L = number of comparisons per pair
+# use_gap = bool to determine whether or not we apply a gap
 # k = number of top elements to separate from the rest
 # gap = imposed gap between first element and rest
 #
 # OUTPUT:
-# w_star = vector approximating ideal w
+# w_hat = vector approximating ideal w
 # l_inf_error = infinity norm error of the approximation vector
 # D_w_error = weighted sum of out of order pairs in the approximation vector
-def simulate(n, L, e, k, gap):
-    w = make_w(n, k, gap)
+def simulate(n, p, L, use_gap, k, gap):
+    w = make_w(n, use_gap, k, gap)
     # normalize w
     w_norm = np.asarray(w) / sum(w)
-    P = make_P(n, e, L, w)
-    w_star = lp_algorithm(P, min(w_norm), max(w_norm))
+    P = make_P(n, p, L, w)
+    w_hat = lp_algorithm(P, min(w_norm), max(w_norm))
 
     # l infinity error
-    l_inf_err = max(abs(np.subtract(w_star, w_norm)))/max(w_norm)
+    l_inf_err = max(abs(np.subtract(w_hat, w_norm)))/max(w_norm)
 
     # D_w error
     D_w_err = 0
     for i in range(0, n):
         for j in range(i, n):
-            if ((w_norm[i] - w_norm[j]) * (w_star[i] - w_star[j]) < 0):
+            if ((w_norm[i] - w_norm[j]) * (w_hat[i] - w_hat[j]) < 0):
                 D_w_err += math.pow((w_norm[i] - w_norm[j]), 2)
 
     D_w_err = math.sqrt(D_w_err / (2*n*math.pow(np.linalg.norm(w_norm), 2)))
 
-    return w_star, l_inf_err, D_w_err
+    return w_hat, l_inf_err, D_w_err
 
-# make_w(n, k, delta_k)
+# make_w(n, use_gap, k, delta_k)
 #
 # INPUT:
 # n = number of elements
+# use_gap = bool to determine whether or not we apply a gap
 # k = number of top elements to separate from the rest
 # delta_k = imposed gap between first k and rest
 #
 # OUTPUT:
 # w = ground truth score vector
-def make_w(n, k, delta_k):
+def make_w(n, use_gap, k, delta_k):
     w = [0] * n
     for i in range(0, n):
         w[i] = random.random() * 0.5 + 0.5
 
-    w_sort = np.sort(w)
+    if (use_gap):
+        w_sort = np.sort(w)
+        # imposed gap = desired gap - (existing gap)
+        gap = delta_k - (w_sort[n-k] - w_sort[n-k-1])
 
-    for i in range(0, n):
-        if (w[i] >= w_sort[n-k]):
-            w[i] += delta_k
+        for i in range(0, n):
+            if (w[i] >= w_sort[n-k]):
+                w[i] += gap
 
     return w
 
-# make_P(n, e, L, w)
+# make_P(n, p, L, w)
 #
 # INPUT:
 # n = number of elements
-# e = comparison probability
+# p = comparison probability
 # L = number of comparisons per pair
 # w = ground truth score vector
 #
 # OUTPUT:
 # P_btl: synthetic data matrix of size nxn
-def make_P(n, e, L, w):
+def make_P(n, p, L, w):
 
     P_btl = np.zeros((n, n))
 
@@ -81,8 +86,8 @@ def make_P(n, e, L, w):
             if (i==j):
                 P_btl[i][j] = 1/2
             # if i and j get compared:
-            elif (random.random() < e):
-                # generate a number of wins according to each model's respective probability function
+            elif (random.random() < p):
+                # generate a number of wins according to the BTL model's probability function
                 wins = np.random.binomial(L, (w[i] / (w[i] + w[j])))
                 # record the probability of wins and the inverse in each matrix ([i][j] and [j][i])
                 P_btl[i][j] = wins / L
@@ -101,7 +106,7 @@ def make_P(n, e, L, w):
 # w_max = maximum score in w vector
 #
 # OUTPUT:
-# w_star = vector approximating ideal w
+# w_hat = vector approximating ideal w
 def lp_algorithm(P, w_min, w_max):
 
     n = P.shape[0]
@@ -144,11 +149,11 @@ def lp_algorithm(P, w_min, w_max):
     m_btl.optimize()
 
     # initialize approximation vector of ideal w
-    w_star = []
+    w_hat = []
 
-    #undo log ->   x = log(w) => w = 2^x
+    #undo log ->   x = log(w) => w = e^x
     for i in range(0, n):
-        w_star.append(pow(math.e, x_btl.X[i])[0])
+        w_hat.append(pow(math.e, x_btl.X[i])[0])
 
-    w_star = w_star / sum(w_star)
-    return w_star
+    w_hat = w_hat / sum(w_hat)
+    return w_hat

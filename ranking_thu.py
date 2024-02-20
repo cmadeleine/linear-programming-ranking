@@ -5,73 +5,78 @@ from gurobipy import GRB
 import math
 from scipy.stats import norm
 
-# simulate(n, L, e, k, gap)
+# simulate(n, L, p, use_gap, k, gap)
 #
 # INPUT:
 # n = number of elements
-# e = comparison probability
+# p = comparison probability
 # L = number of comparisons per pair
+# use_gap = bool to determine whether or not we apply a gap
 # k = number of top elements to separate from the rest
 # gap = imposed gap between first element and rest
 #
 # OUTPUT:
-# s_star = vector approximating ideal s
+# s_hat = vector approximating ideal s
 # l_inf_error = infinity norm error of the approximation vector
 # D_w_error = weighted sum of out of order pairs in the approximation vector
-def simulate(n, L, e, k, gap):
-    s = make_s(n, k, gap)
+def simulate(n, p, L, use_gap, k, gap):
+    s = make_s(n, use_gap, k, gap)
     # normalize s
     s_norm = np.asarray(s) / sum(s)
-    P = make_P(n, e, L, s)
-    s_star = lp_algorithm(P, min(s_norm), max(s_norm))
+    P = make_P(n, p, L, s)
+    s_hat = lp_algorithm(P, min(s_norm), max(s_norm))
 
     # l infinity error
-    l_inf_err = max(abs(np.subtract(s_star, s_norm)))/max(s_norm)
+    l_inf_err = max(abs(np.subtract(s_hat, s_norm)))/max(s_norm)
 
     # D_w error
     D_w_err = 0
     for i in range(0, n):
         for j in range(i, n):
-            if ((s_norm[i] - s_norm[j]) * (s_star[i] - s_star[j]) < 0):
+            if ((s_norm[i] - s_norm[j]) * (s_hat[i] - s_hat[j]) < 0):
                 D_w_err += math.pow((s_norm[i] - s_norm[j]), 2)
 
     D_w_err = math.sqrt(D_w_err / (2*n*math.pow(np.linalg.norm(s_norm), 2)))
 
-    return s_star, l_inf_err, D_w_err
+    return s_hat, l_inf_err, D_w_err
 
-# make_s(n, k, delta_k)
+# make_s(n, use_gap, k, delta_k)
 #
 # INPUT:
 # n = number of elements
+# use_gap = bool to determine whether or not we apply a gap
 # k = number of top elements to separate from the rest
 # delta_k = imposed gap between first k and rest
 #
 # OUTPUT:
 # s = ground truth score vector
-def make_s(n, k, delta_k):
+def make_s(n, use_gap, k, delta_k):
     s = [0] * n
     for i in range(0, n):
         s[i] = random.random() * 0.5 + 0.5
 
-    s_sort = np.sort(s)
+    if (use_gap):
+        s_sort = np.sort(s)
+        # imposed gap = desired gap - (existing gap)
+        gap = delta_k - (s_sort[n-k] - s_sort[n-k-1])
 
-    for i in range(0, n):
-        if (s[i] >= s_sort[n-k]):
-            s[i] += delta_k
+        for i in range(0, n):
+            if (s[i] >= s_sort[n-k]):
+                s[i] += gap
 
     return s
 
-# make_P(n, e, L, s)
+# make_P(n, p, L, s)
 #
 # INPUT:
 # n = number of elements
-# e = comparison probability
+# p = comparison probability
 # L = number of comparisons per pair
 # s = ground truth score vector
 #
 # OUTPUT:
 # P_btl: synthetic data matrix of size nxn
-def make_P(n, e, L, s):
+def make_P(n, p, L, s):
 
     P_thu = np.zeros((n, n))
 
@@ -82,8 +87,8 @@ def make_P(n, e, L, s):
             if (i==j):
                 P_thu[i][j] = 1/2
             # if i and j get compared:
-            elif (random.random() < e):
-                # generate a number of wins according to each model's respective probability function
+            elif (random.random() < p):
+                # generate a number of wins according to the Thurstone model's probability function
                 wins = np.random.binomial(L,  norm.cdf(s[i] - s[j]))
                 # record the probability of wins and the inverse in each matrix ([i][j] and [j][i])
                 P_thu[i][j] = wins / L
@@ -102,7 +107,7 @@ def make_P(n, e, L, s):
 # s_max = maximum score in s vector
 #
 # OUTPUT:
-# s_star = vector approximating ideal s
+# s_hat = vector approximating ideal s
 def lp_algorithm(P, s_min, s_max):
 
     n = P.shape[0]
@@ -145,11 +150,11 @@ def lp_algorithm(P, s_min, s_max):
     m_thu.optimize()
 
     # initialize approximation vector of ideal s
-    s_star = []
+    s_hat = []
 
     # read in values directly
     for i in range(0, n):
-        s_star.append(x_thu.X[i][0])
+        s_hat.append(x_thu.X[i][0])
 
-    s_star = s_star / sum(s_star)
-    return s_star
+    s_hat = s_hat / sum(s_hat)
+    return s_hat
