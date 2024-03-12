@@ -46,7 +46,7 @@ def simulate(n, p, L, use_gap, k, gap):
 # n = number of elements
 # use_gap = bool to determine whether or not we apply a gap
 # k = number of top elements to separate from the rest
-# delta_k = imposed gap between first k and rest
+# delta_k = imposed gap between top k and rest
 #
 # OUTPUT:
 # s = ground truth score vector
