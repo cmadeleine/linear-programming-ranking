@@ -13,7 +13,7 @@ from scipy.stats import norm
 # L = number of comparisons per pair
 # use_gap = bool to determine whether or not we apply a gap
 # k = number of top elements to separate from the rest
-# gap = imposed gap between first element and rest
+# gap = imposed gap between top k elements and rest
 #
 # OUTPUT:
 # s_hat = vector approximating ideal s
