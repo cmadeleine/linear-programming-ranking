@@ -37,6 +37,7 @@ We consider the problem of ranking $n$ items from independent pairwise compariso
 
 - [Dependencies](#-dependencies)
 
+- [Acknowledgements](#-acknowledgements)
  
 ---
   
@@ -80,12 +81,13 @@ to be small (where the norm is not specified). It turns out that the $1$-norm is
 Using BTL model:
 
 
-**Input:** Pairwise comparison data matrix $P$, score range $[w^{\star}_{\text{min}}, w^{\star}_{\text{max}}]$
-**Output:** Estimated score vector $w$, estimated ranking $\pi$}
+**Input:** Pairwise comparison data matrix $P$, score range $`[w^{\star}_{\text{min}}, w^{\star}_{\text{max}}]`$
 
-1. Construct link-transformed matrix $\hat{P}$ where $\hat{P}_{ij} = \psi(P_{ij})$
+**Output:** Estimated score vector $w$, estimated ranking $\pi$
+
+1. Construct link-transformed matrix $\hat{P}$ where $`\hat{P}_{ij} = \psi(P_{ij})`$
 2. Construct the optimization problem as follows: 
-	- Let $x$ be a vector of size $n$, where $\log(w^{\star}_{\text{min}}) \leq x_i \leq \log(w^{\star}_{\text{max}})$ for all $i \in [n]$.
+	- Let $x$ be a vector of size $n$, where $`\log(w^{\star}_{\text{min}}) \leq x_i \leq \log(w^{\star}_{\text{max}})`$ for all $i \in [n]$.
 	- Let $Y$ be a matrix defined by $Y_{ij} = x_i-x_j.$
 
 	- Solve by finding the vector $x$ which minimizes the matrix norm: $$\min \Vert Y-\hat{P}\Vert_1$$
@@ -94,7 +96,7 @@ Using BTL model:
 
 <br>
 
-The Thurstone model follows the same process (with $s^{\star}$replacing $w^{\star}$) except for the final step:
+The Thurstone model follows the same process (with $`s^{\star}`$replacing $`w^{\star}`$) except for the final step:
 
 3. Set $s_i = x_i$, and construct $\pi$ so that $\pi(i) \leq \pi(j)$ whenever $s_i \geq s_j$.
 
@@ -108,7 +110,7 @@ $$
 $$
 
 ## Usage
-Because the BTL and Thurstone model have different implementations, they are split into two files here. 
+Because the BTL and Thurstone models have different implementations, they are split into two files here. 
 To run the linear programming algorithm on a pre-existing matrix P, run ```lp_algorithm(P)```
 
 To create the synthetic data matrix and then use the algorithm on it, run ```simulate(n, p, L, use_gap, k, gap)``` with the desired parameters.
@@ -137,7 +139,7 @@ simulate(n, p, L, use_gap, k, gap)
 | `D_w_err` | Weighted fraction of out-of-order pairs |
 
 
-### Helper functions
+### Helper Functions
 
 1. **`make_w`/`make_s`** — generates a random ground truth score vector in [0.5, 1.0]. If `use_gap=True`, a minimum score gap of size `gap` is enforced between the top `k` and remaining elements.
 2. **`make_P`** — builds an `n×n` pairwise comparison matrix using the respective probability model. Each pair is compared with probability `p`, with win counts drawn from a binomial distribution.
@@ -151,11 +153,14 @@ This project requires the following Python packages:
 | Package | Description |
 |---|---|
 | `numpy` | Numerical computing and array operations |
-| `gurobipy` | Gurobi optimizer Python API — requires a valid Gurobi license |
+| `gurobipy` | Gurobi optimizer Python API |
 | `random` | Standard library — no installation needed |
 | `math` | Standard library — no installation needed |
 
 > **Note:** A valid [Gurobi license](https://www.gurobi.com/downloads/) is required to use `gurobipy`.
 
 
+## Acknowledgements
+
+This project was developed under the supervision and guidance of Dr. Julia Gaudio at Northwestern University.
 
