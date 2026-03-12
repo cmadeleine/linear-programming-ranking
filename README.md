@@ -27,30 +27,18 @@ We consider the problem of ranking $n$ items from independent pairwise compariso
 
 - [Overview](#-overview)
 
-- [Background](#-background)
+- [Introduction](#-Introduction)
+
+- [Models](#-models)
 
 - [Methods](#-methods)
 
-- [Repository Structure](#-repository-structure)
-
-- [Installation](#-installation)
-
 - [Usage](#-usage)
 
-- [Experiments & Results](#-experiments--results)
+- [Dependencies](#-dependencies)
 
-- [Datasets](#-datasets)
-
-- [Citation](#-citation)
-
-- [License](#-license)
-
-- [Contact](#-contact)
-
-  
-
+ 
 ---
-
   
 
 ## Introduction
@@ -67,10 +55,10 @@ Our focus is on learning from pairwise comparisons, where the comparisons are ge
   
 Both ranking models are specified by a matrix $P^{\star} \in \mathbb{R}^{n \times n}$, where $P_{ij}^{\star}$ is the probability that item $i$ beats item $j$, whenever this pair of items is compared. A given pair of items $(i,j)$ is compared with probability $p$, independently of other pairs. Each such pair is compared $L$ independent times. 
 
-**BTL Model**
+**BTL Model:** 
 In the BTL model, there are $n$ items labeled $1, \dots, n$. Item $i$ is associated with a score or *quality* $w_i^{\star} > 0$, where $w_i^{\star} \neq w_j^{\star}$ for all $i,j$. The ground-truth ranking $\pi^{\star}$ is based on the qualities; i.e. $\pi^{\star}_i < \pi^{\star}_j$ if $w_i^{\star} > w_j^{\star}$, so that higher quality items are ranked at an earlier position. When items $i$ and $j$ are compared, item $i$ wins with probability $\frac{w_i^{\star}}{w_i^{\star} + w_j^{\star}}$, while $j$ wins with probability $\frac{w_j^{\star}}{w_i^{\star} + w_j^{\star}}$. There are no ties. 
 
-**Thurstone Model**
+**Thurstone Model:**
 In the Thurstone model, each item is associated with a quality $s_i^{\star} \in \mathbb{R}$, and the ground-truth ranking $\pi^{\star}$ is again determined by these qualities. When items $i$ and $j$ are compared, $i$ beats $j$ with probability $P^{\star}_{ij} = \phi(s^{\star}_i-s^{\star}_j)$, where $\phi(x)$ is the cumulative distribution function of the standard normal random variable. 
 
 
@@ -78,10 +66,13 @@ In the Thurstone model, each item is associated with a quality $s_i^{\star} \in 
 We propose an optimization formulation to recover the underlying ranking $\pi^{\star}$ for both the BTL and Thurstone models. We leverage the fact that the comparison matrices $P^{\star}$ associated to these models both have a hidden low-rank structure. Namely, for each model there is a link function $\psi$ such that $\psi(P^{\star})$ is low-rank, and has a simple representation in terms of the model parameters. Our strategy is to compute the link-transformed observation matrix $\psi(P)$, where $P_{ij}$ records the fraction of times that item $j$ beats item $i$. Since $P$ can be viewed as an approximation of $P^{\star}$ (the ground truth matrix), we fit parameters to the matrix $\psi(P)$ according to the low-rank structure of $\psi(P^{\star})$. The parameter fitting is formulated as a linear program. 
 
 For BTL, $\psi=$ logit function
+
 For Thurstone, $\psi=$ quantile function (inverse CDF)
 
 Letting $\Omega (P)$ denote the restriction of a matrix to the set of ordered pairs $(i,j)$ which are compared (ignoring pairs that are *not* compared), we thus expect
+
 $$\Vert\Omega\left(\psi(P) - \psi(P^{\star}) \right)\Vert$$
+
 to be small (where the norm is not specified). It turns out that the $1$-norm is convenient for optimization. We thus propose the following algorithms:
 
 
@@ -115,5 +106,56 @@ $$
 &\min \sum_{i=1}^n \sum_{j=1}^n Z_{ij} &&& \text{such that} &&&-Z_{ij} \leq Y_{ij} - \hat{P}_{ij} \leq Z_{ij} 
 \end{aligned}
 $$
+
+## Usage
+Because the BTL and Thurstone model have different implementations, they are split into two files here. 
+To run the linear programming algorithm on a pre-existing matrix P, run ```lp_algorithm(P)```
+
+To create the synthetic data matrix and then use the algorithm on it, run ```simulate(n, p, L, use_gap, k, gap)``` with the desired parameters.
+
+
+### Main Function
+```python
+simulate(n, p, L, use_gap, k, gap)
+```
+
+| Parameter | Type | Description |
+|---|---|---|
+| `n` | `int` | Number of elements to rank |
+| `p` | `float` | Probability that any two elements are compared (0–1) |
+| `L` | `int` | Number of comparisons per pair |
+| `use_gap` | `bool` | Whether to enforce a score gap between the top `k` and remaining elements |
+| `k` | `int` | Number of top elements to separate (used when `use_gap=True`) |
+| `gap` | `float` | Minimum score gap to impose between top `k` and the rest |
+
+**Returns:**
+
+| Output | Description |
+|---|---|
+| `w_hat` (BTL) or `s_hat` (Thurstone)| Estimated normalized score vector |
+| `l_inf_err` | L∞ (infinity norm) error, normalized by max score |
+| `D_w_err` | Weighted fraction of out-of-order pairs |
+
+
+### Helper functions
+
+1. **`make_w`/`make_s`** — generates a random ground truth score vector in [0.5, 1.0]. If `use_gap=True`, a minimum score gap of size `gap` is enforced between the top `k` and remaining elements.
+2. **`make_P`** — builds an `n×n` pairwise comparison matrix using the respective probability model. Each pair is compared with probability `p`, with win counts drawn from a binomial distribution.
+3. **`lp_algorithm`** — applies a link function to the comparison matrix and solves an L1 minimization problem via Gurobi to recover the estimated score vector `w_hat`/`s_hat`.
+
+
+## Dependencies
+
+This project requires the following Python packages:
+
+| Package | Description |
+|---|---|
+| `numpy` | Numerical computing and array operations |
+| `gurobipy` | Gurobi optimizer Python API — requires a valid Gurobi license |
+| `random` | Standard library — no installation needed |
+| `math` | Standard library — no installation needed |
+
+> **Note:** A valid [Gurobi license](https://www.gurobi.com/downloads/) is required to use `gurobipy`.
+
 
 
