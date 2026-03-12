@@ -17,31 +17,6 @@ We consider the problem of ranking $n$ items from independent pairwise compariso
   
 
 
-
-
-  
-
-## Table of Contents
-
-  
-
-- [Overview](#-overview)
-
-- [Introduction](#-Introduction)
-
-- [Models](#-models)
-
-- [Methods](#-methods)
-
-- [Usage](#-usage)
-
-- [Dependencies](#-dependencies)
-
-- [Acknowledgements](#-acknowledgements)
- 
----
-  
-
 ## Introduction
 
   
