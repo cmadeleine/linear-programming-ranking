@@ -158,3 +158,4 @@ def lp_algorithm(P, s_min, s_max):
 
     s_hat = s_hat / sum(s_hat)
     return s_hat
+
